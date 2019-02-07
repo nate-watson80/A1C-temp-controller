@@ -22,8 +22,11 @@ int counter = 0;
 int index = 0;
 
 
-void setup()
-{
+void setup() {
+  /* setup() is a module to initiate the system.
+  Begin serial monitor and initialize system units as outputs
+  */
+
   Serial.begin(9600);  //Start the serial connection with the computer
   //Initialize all to LOW
   pinMode(heatPin, OUTPUT);
@@ -32,38 +35,62 @@ void setup()
   digitalWrite(fanPin, LOW);
 }
 
-void loop()                     // run over and over again
-{
- if (index ==EEPROM.length()) { // Kill if filled up EEPROM
-    return;
- }
- //getting the voltage reading from the temperature sensor and converting to temp.
- float reading = analogRead(sensorPin);
- float voltage = reading * 5.0;
- voltage /= 1024.0;
- float temperatureC = (voltage - 0.5) * 100 ;  //converting from 10 mv per degree wit 500 mV offset
-                                               //to degrees ((voltage - 500mV) times 100
+void loop() {
+  /* loop() is the main iterating loop.
+  (1) Check to see if EEPROM has space left on its memory.
+  (2) Take temperature measurement.
+  (3) Turn on appropriate regulatoion units.
+  (4) Save measurement in EEPROM memory.
+  */
+
+  // End the main loop if EEPROM memory is full
+  if (index ==EEPROM.length()) {
+     return;
+  }
+
+  // Take temperature reading:
+  temperatureC = takeReading();
+
   Serial.println(temperatureC);
 
-// Controller
- if (temperatureC >= tempMax) {
-    digitalWrite(heatPin, LOW);
-    digitalWrite(fanPin, HIGH);
- }
- if (temperatureC <= tempMin) {
-    digitalWrite(heatPin, HIGH);
-    digitalWrite(fanPin, LOW);
- }
- if (temperatureC > (target - hyst) && temperatureC <= (target+hyst)) {
-    digitalWrite(heatPin, LOW);
-    digitalWrite(fanPin, LOW);
- }
+  // Based on temperature turn units on or off:
+  controller();
 
-// Save a value every 20 readings
- if (counter % 2 == 0) {                         // save temperature every 20 seconds
-    EEPROM.write(index, reading);
-    index++;
- }
- counter++;
- delay(1000);                                     //waiting 1 second
+  // Save a value every 20 readings
+  if (counter % 2 == 0) { // save temperature every 2 seconds
+     EEPROM.write(index, reading);
+     index++;
+  }
+  counter++;
+  delay(1000);  //Delay system 1 second to slow down readings
+}
+
+
+float takeReading() {
+  /* takeReading()
+  This module takes a raw reading from analog pin and converts it to degC
+  */
+  float reading = analogRead(sensorPin);
+  float voltage = reading * 5.0;
+  voltage /= 1024.0;
+  float temperatureC = (voltage - 0.5) * 100;  //converting from 10 mv per degree wit 500 mV offset
+  return temperatureC
+}
+
+void controller() {
+  /* controller() is a module to turn on appropriate regulation units.
+  Cut off values of tempMax and tempMin define switching behavior.
+  */
+  if (temperatureC >= tempMax) {
+     digitalWrite(heatPin, LOW);
+     digitalWrite(fanPin, HIGH);
+  }
+  if (temperatureC <= tempMin) {
+     digitalWrite(heatPin, HIGH);
+     digitalWrite(fanPin, LOW);
+  }
+  if (temperatureC > tempMin && temperatureC <= tempMax) {
+     digitalWrite(heatPin, LOW);
+     digitalWrite(fanPin, LOW);
+  }
 }

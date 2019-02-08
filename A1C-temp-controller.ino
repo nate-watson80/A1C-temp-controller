@@ -49,12 +49,12 @@ void loop() {
   }
 
   // Take temperature reading:
-  temperatureC = takeReading();
+  float temperatureC, reading = takeReading();
 
   Serial.println(temperatureC);
 
   // Based on temperature turn units on or off:
-  controller();
+  controller(temperatureC);
 
   // Save a value every 20 readings
   if (counter % 2 == 0) { // save temperature every 2 seconds
@@ -73,23 +73,24 @@ float takeReading() {
   float reading = analogRead(sensorPin);
   float voltage = reading * 5.0;
   voltage /= 1024.0;
-  float temperatureC = (voltage - 0.5) * 100;  //converting from 10 mv per degree wit 500 mV offset
-  return temperatureC
+  float temp = (voltage - 0.5) * 100;  //converting from 10 mv per degree wit 500 mV offset
+  return temp, reading;
 }
 
-void controller() {
+void controller(float temp_input) {
+
   /* controller() is a module to turn on appropriate regulation units.
   Cut off values of tempMax and tempMin define switching behavior.
   */
-  if (temperatureC >= tempMax) {
+  if (temp_input >= tempMax) {
      digitalWrite(heatPin, LOW);
      digitalWrite(fanPin, HIGH);
   }
-  if (temperatureC <= tempMin) {
+  if (temp_input <= tempMin) {
      digitalWrite(heatPin, HIGH);
      digitalWrite(fanPin, LOW);
   }
-  if (temperatureC > tempMin && temperatureC <= tempMax) {
+  if (temp_input > tempMin && temp_input <= tempMax) {
      digitalWrite(heatPin, LOW);
      digitalWrite(fanPin, LOW);
   }
